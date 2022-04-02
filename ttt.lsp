@@ -156,7 +156,7 @@
             (setq devname nil)))))
   devname)
 
-(defun x:process-content (items last-dev-items ss / devname ptr linum exit_loop next ssidx)
+(defun x:process-content (items last-dev-items devices / devname ptr linum)
   (setq devname (nth 6 last-dev-items))
   (setq ptr (vl-string-search "DCS" devname))
   (setq devname (substr devname (+ ptr 4) 2))
@@ -172,21 +172,23 @@
   (setq devname (x:cat_devname devname linum 0))
 
   ; process replacement
+  (if devname
+    (progn
+      (setq devices (cons (cons devname items) devices))))
+  devices)
+
+(defun x:process-replace (ss devices / next ssidx devname)
   (setq ssidx 0)
-  (setq exit_loop nil)
-  (while (and (and devname (not exit_loop)) (/= ssidx (sslength ss)))
+  (while (/= ssidx (sslength ss))
     (setq next (ssname ss ssidx))
     (setq next (entnext next))
-    (cond
-      ((= (cdr (assoc 1 (entget next))) devname)
-        (princ "\nfind entity: ")
-        (princ devname)
-        (setq exit_loop T)))
+    (setq devname (cdr (assoc 1 (entget next))))
+    (princ "\nfind entity: ")
+    (princ (assoc devname devices))
     (setq ssidx (+ ssidx 1)))
-  ;(vl-exit-with-value 1)
-  (princ))
+  )
 
-(defun c:ttt (/ fname fp line items last-dev-items ss)
+(defun c:ttt (/ fname fp line items last-dev-items devices ss)
   ; get finename
   (setq fname (getfiled "" "" "txt" 8))
   (cond ((not fname)
@@ -204,13 +206,16 @@
     (setq items (x:split line "\t")))
 
   ; process content lines
-  (setq ss (ssget "X" '((0 . "INSERT") (2 . "IO*"))))
   (while line
     (setq items (x:split line "\t"))
     (cond ((/= (nth 6 items) "")
       (setq last-dev-items items)))
-    (x:process-content items last-dev-items ss)
+    (setq devices (x:process-content items last-dev-items devices))
     (setq line (read-line fp)))
+
+  ; process replace
+  (setq ss (ssget "X" '((0 . "INSERT") (2 . "IO*"))))
+  (x:process-replace ss devices)
 
   ; close file
   (close fp)
