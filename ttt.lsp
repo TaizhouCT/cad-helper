@@ -125,7 +125,7 @@
 (defun x:cat_devname (devname linum format_idx / regmat)
   (cond
     ((= format_idx 0)
-      (setq regmat (RegExpExecute linum "([0-9]A[0-9]+)\\+" nil nil))
+      (setq regmat (RegExpExecute linum "^([0-9]A[0-9]+)\\+$" nil nil))
         (if regmat
           (progn
             (setq regmat (caar regmat))
@@ -134,7 +134,7 @@
           (progn
             (setq devname (x:cat_devname devname linum 1)))))
     ((= format_idx 1)
-      (setq regmat (RegExpExecute linum "([0-9]AO[0-9])+\\+" nil nil))
+      (setq regmat (RegExpExecute linum "^([0-9]AO[0-9])+\\+$" nil nil))
         (if regmat
           (progn
             (setq regmat (caar regmat))
@@ -143,7 +143,7 @@
           (progn
             (setq devname (x:cat_devname devname linum 2)))))
     ((= format_idx 2)
-      (setq regmat (RegExpExecute linum "E[0-9]+\\.[0-9]+" nil nil))
+      (setq regmat (RegExpExecute linum "^E[0-9]+\\.[0-9]+$" nil nil))
         (if regmat
           (progn
             (setq regmat (caar regmat))
@@ -151,7 +151,7 @@
           (progn
             (setq devname (x:cat_devname devname linum 3)))))
     ((= format_idx 3)
-      (setq regmat (RegExpExecute linum "([0-9])+-[0-9]+" nil nil))
+      (setq regmat (RegExpExecute linum "^([0-9])+-[0-9]+$" nil nil))
         (if regmat
           (progn
             (setq regmat (caar regmat))
@@ -194,7 +194,7 @@
     (if device
       (progn
         ;(princ "\nfind entity: ")
-        (setq items (x:split (nth 12 device) "#"))
+        (setq items (x:split (nth 13 device) "#"))
 
         ; system address
         (setq next (entnext next))
