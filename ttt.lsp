@@ -111,6 +111,11 @@
 
 ;; c:ttt of cad-helper
 
+(defun nth-replace (newitem position alist / i)
+  (setq i -1)
+  (mapcar '(lambda (x) (if (= position (setq i (1+ i))) newitem x)) alist)
+)
+
 (defun x:split (str delim / ptr lst)
   (while (setq ptr (vl-string-search delim str))
     (setq lst (cons (substr str 1 ptr) lst))
@@ -156,8 +161,8 @@
             (setq devname nil)))))
   devname)
 
-(defun x:process-content (items last-dev-items devices / devname ptr linum)
-  (setq devname (nth 6 last-dev-items))
+(defun x:process-content (items devices / devname ptr linum)
+  (setq devname (nth 6 items))
   (setq ptr (vl-string-search "DCS" devname))
   (setq devname (substr devname (+ ptr 4) 2))
   (cond ((= (substr devname 1 1) "0")
@@ -177,16 +182,40 @@
       (setq devices (cons (cons devname items) devices))))
   devices)
 
-(defun x:process-replace (ss devices / next ssidx devname)
+(defun x:process-replace (ss devices / devname device ssidx next ed)
   (setq ssidx 0)
   (while (/= ssidx (sslength ss))
     (setq next (ssname ss ssidx))
     (setq next (entnext next))
     (setq devname (cdr (assoc 1 (entget next))))
-    (princ "\nfind entity: ")
-    (princ (assoc devname devices))
-    (setq ssidx (+ ssidx 1)))
-  )
+    (setq device (assoc devname devices))
+
+    ; replace
+    (if device
+      (progn
+        ;(princ "\nfind entity: ")
+        ; system address
+        (setq next (entnext next))
+
+        ; usage
+        (setq next (entnext next))
+        (setq ed (entget next))
+        (setq ed (subst (cons 1 (nth 3 device)) (assoc 1 ed) ed))
+        (entmod ed)
+
+        ; meter tag
+        (setq next (entnext next))
+        (setq ed (entget next))
+        (setq ed (subst (cons 1 (nth 4 device)) (assoc 1 ed) ed))
+        (entmod ed)
+
+        ; device name
+        (setq next (entnext next))
+        (setq ed (entget next))
+        (setq ed (subst (cons 1 (nth 5 device)) (assoc 1 ed) ed))
+        (entmod ed)))
+
+    (setq ssidx (+ ssidx 1))))
 
 (defun c:ttt (/ fname fp line items last-dev-items devices ss)
   ; get finename
@@ -208,9 +237,20 @@
   ; process content lines
   (while line
     (setq items (x:split line "\t"))
-    (cond ((/= (nth 6 items) "")
-      (setq last-dev-items items)))
-    (setq devices (x:process-content items last-dev-items devices))
+    (if (/= (nth 6 items) "")
+      (progn
+        (setq last-dev-items items))
+      (progn
+        (setq items (nth-replace (nth 0 last-dev-items) 0 items))
+        (setq items (nth-replace (nth 1 last-dev-items) 1 items))
+        (setq items (nth-replace (nth 2 last-dev-items) 2 items))
+        (setq items (nth-replace (nth 3 last-dev-items) 3 items))
+        (setq items (nth-replace (nth 4 last-dev-items) 4 items))
+        (setq items (nth-replace (nth 5 last-dev-items) 5 items))
+        (setq items (nth-replace (nth 6 last-dev-items) 6 items))
+        (setq items (nth-replace (nth 7 last-dev-items) 7 items))
+        ))
+    (setq devices (x:process-content items devices))
     (setq line (read-line fp)))
 
   ; process replace
