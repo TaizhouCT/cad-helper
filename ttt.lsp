@@ -182,7 +182,7 @@
       (setq devices (cons (cons devname items) devices))))
   devices)
 
-(defun x:process-replace (ss devices / devname device ssidx next ed)
+(defun x:process-replace (ss devices / devname device items ssidx next ed)
   (setq ssidx 0)
   (while (/= ssidx (sslength ss))
     (setq next (ssname ss ssidx))
@@ -194,25 +194,27 @@
     (if device
       (progn
         ;(princ "\nfind entity: ")
+        (setq items (x:split (nth 12 device) "#"))
+
         ; system address
         (setq next (entnext next))
 
         ; usage
         (setq next (entnext next))
         (setq ed (entget next))
-        (setq ed (subst (cons 1 (nth 3 device)) (assoc 1 ed) ed))
+        (setq ed (subst (cons 1 (nth 2 items)) (assoc 1 ed) ed))
         (entmod ed)
 
         ; meter tag
         (setq next (entnext next))
         (setq ed (entget next))
-        (setq ed (subst (cons 1 (nth 4 device)) (assoc 1 ed) ed))
+        (setq ed (subst (cons 1 (nth 1 items)) (assoc 1 ed) ed))
         (entmod ed)
 
         ; device name
         (setq next (entnext next))
         (setq ed (entget next))
-        (setq ed (subst (cons 1 (nth 5 device)) (assoc 1 ed) ed))
+        (setq ed (subst (cons 1 (nth 0 items)) (assoc 1 ed) ed))
         (entmod ed)))
 
     (setq ssidx (+ ssidx 1))))
