@@ -161,12 +161,19 @@
             (setq devname nil)))))
   devname)
 
-(defun x:process-content (items devices / devname ptr linum)
+(defun x:process-content (items devices / devname regmat ptr linum)
   (setq devname (nth 6 items))
-  (setq ptr (vl-string-search "DCS" devname))
-  (setq devname (substr devname (+ ptr 4) 2))
-  (cond ((= (substr devname 1 1) "0")
-    (setq devname (substr devname 2))))
+  (setq regmat (RegExpExecute devname "(DCS[0-9]+)" nil nil))
+  (if (not regmat)
+    (progn
+      (princ "\nnot avialable devname: ")
+      (princ devname)
+      (princ items)
+      (princ "\nexit ...")
+      (vl-exit-with-value 1)))
+  (if (= "DCS0" (substr (caar regmat) 1 4))
+    (setq devname (substr (caar regmat) 5))
+    (setq devname (substr (caar regmat) 4)))
 
   (setq linum (nth 10 items))
 
@@ -179,7 +186,10 @@
   ; process replacement
   (if devname
     (progn
+      (princ "\nadd device: ")
+      (princ devname)
       (setq devices (cons (cons devname items) devices))))
+
   devices)
 
 (defun x:process-replace (ss devices / devname device items ssidx next ed)
@@ -194,7 +204,14 @@
     (if device
       (progn
         ;(princ "\nfind entity: ")
+        ;(princ devname)
         (setq items (x:split (nth 13 device) "#"))
+        (if (/= (length items) 3)
+          (progn
+            (princ "\nwrong format of column 'CAD': ")
+            (princ items)
+            (princ device)
+            (vl-exit-with-value 1)))
 
         ; system address
         (setq next (entnext next))
@@ -215,7 +232,10 @@
         (setq next (entnext next))
         (setq ed (entget next))
         (setq ed (subst (cons 1 (nth 0 items)) (assoc 1 ed) ed))
-        (entmod ed)))
+        (entmod ed))
+      (progn
+        (princ "\nnot find entity: ")
+        (princ devname)))
 
     (setq ssidx (+ ssidx 1))))
 
@@ -239,9 +259,8 @@
   ; process content lines
   (while line
     (setq items (x:split line "\t"))
-    (if (/= (nth 6 items) "")
-      (progn
-        (setq last-dev-items items))
+    (if (/= (nth 0 items) "")
+      (setq last-dev-items items)
       (progn
         (setq items (nth-replace (nth 0 last-dev-items) 0 items))
         (setq items (nth-replace (nth 1 last-dev-items) 1 items))
@@ -258,6 +277,14 @@
   ; process replace
   (setq ss (ssget "X" '((0 . "INSERT") (2 . "IO*"))))
   (x:process-replace ss devices)
+  ;(setq ss (ssget "X" '((0 . "INSERT") (2 . "AI*"))))
+  ;(x:process-replace ss devices)
+  ;(setq ss (ssget "X" '((0 . "INSERT") (2 . "AO*"))))
+  ;(x:process-replace ss devices)
+  ;(setq ss (ssget "X" '((0 . "INSERT") (2 . "DI*"))))
+  ;(x:process-replace ss devices)
+  ;(setq ss (ssget "X" '((0 . "INSERT") (2 . "DO*"))))
+  ;(x:process-replace ss devices)
 
   ; close file
   (close fp)
