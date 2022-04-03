@@ -111,7 +111,7 @@
 
 ;; c:ttt of cad-helper
 
-(defun nth-replace (newitem position alist / i)
+(defun x:nth-replace (newitem position alist / i)
   (setq i -1)
   (mapcar '(lambda (x) (if (= position (setq i (1+ i))) newitem x)) alist)
 )
@@ -168,74 +168,80 @@
     (progn
       (princ "\nnot avialable devname: ")
       (princ devname)
-      (princ items)
-      (princ "\nexit ...")
-      (vl-exit-with-value 1)))
-  (if (= "DCS0" (substr (caar regmat) 1 4))
-    (setq devname (substr (caar regmat) 5))
-    (setq devname (substr (caar regmat) 4)))
-
-  (setq linum (nth 10 items))
-
-  ;(print (RegexpExecute "12B 4bis" "([0-9]+)([A-Z]+)" T T))
-  ;(vl-exit-with-value 1)
-
-  ; FIXME is there "return" in lisp????????
-  (setq devname (x:cat_devname devname linum 0))
-
-  ; process replacement
-  (if devname
+      (princ items))
     (progn
-      (princ "\nadd device: ")
-      (princ devname)
-      (setq devices (cons (cons devname items) devices))))
+      (if (= "DCS0" (substr (caar regmat) 1 4))
+        (setq devname (substr (caar regmat) 5))
+        (setq devname (substr (caar regmat) 4)))
 
+      (setq linum (nth 10 items))
+
+      ;(print (RegexpExecute "12B 4bis" "([0-9]+)([A-Z]+)" T T))
+      ;(vl-exit-with-value 1)
+
+      ; FIXME is there "return" in lisp????????
+      (setq devname (x:cat_devname devname linum 0))
+
+      ; process replacement
+      (if devname
+        (progn
+          (princ "\nadd device: ")
+          (princ devname)
+          (setq devices (cons (cons devname items) devices))))
+      ))
   devices)
 
-(defun x:process-replace (ss devices / devname device items ssidx next ed)
+(defun x:process-replace (ss devices / attrname devname device items ssidx next ed)
   (setq ssidx 0)
   (while (/= ssidx (sslength ss))
     (setq next (ssname ss ssidx))
     (setq next (entnext next))
+    (setq attrname (cdr (assoc 2 (entget next))))
     (setq devname (cdr (assoc 1 (entget next))))
-    (setq device (assoc devname devices))
-
-    ; replace
-    (if device
+    (if (not devname)
       (progn
-        ;(princ "\nfind entity: ")
-        ;(princ devname)
-        (setq items (x:split (nth 13 device) "#"))
-        (if (/= (length items) 3)
+        (princ "\nnot avaiable entity, attrname: ")
+        (princ attrname))
+      (progn
+        (setq device (assoc devname devices))
+        (if (not device)
           (progn
-            (princ "\nwrong format of column 'CAD': ")
-            (princ items)
-            (princ device)
-            (vl-exit-with-value 1)))
+            (princ "\nnot find entity, attrname: ")
+            (princ attrname)
+            (princ ", devname: ")
+            (princ devname))
+          (progn
+            ;(princ "\nfind entity: ")
+            ;(princ devname)
+            (setq items (x:split (nth 13 device) "^"))
+            (if (/= (length items) 3)
+              (progn
+                (princ "\nwrong format of column 'CAD': ")
+                (princ items)
+                (princ device)
+                (princ "\nexit ...")
+                (vl-exit-with-value 1)))
 
-        ; system address
-        (setq next (entnext next))
+            ; system address
+            (setq next (entnext next))
 
-        ; usage
-        (setq next (entnext next))
-        (setq ed (entget next))
-        (setq ed (subst (cons 1 (nth 2 items)) (assoc 1 ed) ed))
-        (entmod ed)
+            ; usage
+            (setq next (entnext next))
+            (setq ed (entget next))
+            (setq ed (subst (cons 1 (nth 2 items)) (assoc 1 ed) ed))
+            (entmod ed)
 
-        ; meter tag
-        (setq next (entnext next))
-        (setq ed (entget next))
-        (setq ed (subst (cons 1 (nth 1 items)) (assoc 1 ed) ed))
-        (entmod ed)
+            ; meter tag
+            (setq next (entnext next))
+            (setq ed (entget next))
+            (setq ed (subst (cons 1 (nth 1 items)) (assoc 1 ed) ed))
+            (entmod ed)
 
-        ; device name
-        (setq next (entnext next))
-        (setq ed (entget next))
-        (setq ed (subst (cons 1 (nth 0 items)) (assoc 1 ed) ed))
-        (entmod ed))
-      (progn
-        (princ "\nnot find entity: ")
-        (princ devname)))
+            ; device name
+            (setq next (entnext next))
+            (setq ed (entget next))
+            (setq ed (subst (cons 1 (nth 0 items)) (assoc 1 ed) ed))
+            (entmod ed)))))
 
     (setq ssidx (+ ssidx 1))))
 
@@ -262,30 +268,31 @@
     (if (/= (nth 0 items) "")
       (setq last-dev-items items)
       (progn
-        (setq items (nth-replace (nth 0 last-dev-items) 0 items))
-        (setq items (nth-replace (nth 1 last-dev-items) 1 items))
-        (setq items (nth-replace (nth 2 last-dev-items) 2 items))
-        (setq items (nth-replace (nth 3 last-dev-items) 3 items))
-        (setq items (nth-replace (nth 4 last-dev-items) 4 items))
-        (setq items (nth-replace (nth 5 last-dev-items) 5 items))
-        (setq items (nth-replace (nth 6 last-dev-items) 6 items))
-        (setq items (nth-replace (nth 7 last-dev-items) 7 items))
+        (setq items (x:nth-replace (nth 0 last-dev-items) 0 items))
+        (setq items (x:nth-replace (nth 1 last-dev-items) 1 items))
+        (setq items (x:nth-replace (nth 2 last-dev-items) 2 items))
+        (setq items (x:nth-replace (nth 3 last-dev-items) 3 items))
+        (setq items (x:nth-replace (nth 4 last-dev-items) 4 items))
+        (setq items (x:nth-replace (nth 5 last-dev-items) 5 items))
+        (setq items (x:nth-replace (nth 6 last-dev-items) 6 items))
+        (setq items (x:nth-replace (nth 7 last-dev-items) 7 items))
         ))
     (setq devices (x:process-content items devices))
     (setq line (read-line fp)))
 
-  ; process replace
-  (setq ss (ssget "X" '((0 . "INSERT") (2 . "IO*"))))
-  (x:process-replace ss devices)
-  ;(setq ss (ssget "X" '((0 . "INSERT") (2 . "AI*"))))
-  ;(x:process-replace ss devices)
-  ;(setq ss (ssget "X" '((0 . "INSERT") (2 . "AO*"))))
-  ;(x:process-replace ss devices)
-  ;(setq ss (ssget "X" '((0 . "INSERT") (2 . "DI*"))))
-  ;(x:process-replace ss devices)
-  ;(setq ss (ssget "X" '((0 . "INSERT") (2 . "DO*"))))
-  ;(x:process-replace ss devices)
-
   ; close file
   (close fp)
+
+  ; process replace
+  (setq ss (ssget "X" '((0 . "INSERT") (2 . "IO*"))))
+  (if ss (x:process-replace ss devices))
+  (setq ss (ssget "X" '((0 . "INSERT") (2 . "AI*"))))
+  (if ss (x:process-replace ss devices))
+  (setq ss (ssget "X" '((0 . "INSERT") (2 . "AO*"))))
+  (if ss (x:process-replace ss devices))
+  (setq ss (ssget "X" '((0 . "INSERT") (2 . "DI*"))))
+  (if ss (x:process-replace ss devices))
+  (setq ss (ssget "X" '((0 . "INSERT") (2 . "DO*"))))
+  (if ss (x:process-replace ss devices))
+
   (princ))
