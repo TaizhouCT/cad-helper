@@ -198,7 +198,7 @@
     (setq next (entnext next))
     (setq attrname (cdr (assoc 2 (entget next))))
     (setq devname (cdr (assoc 1 (entget next))))
-    (if (not devname)
+    (if (or (not devname) (/= attrname "机柜地址"))
       (progn
         (princ "\nnot avaiable entity, attrname: ")
         (princ attrname))
@@ -284,15 +284,15 @@
   (close fp)
 
   ; process replace
-  (setq ss (ssget "X" '((0 . "INSERT") (2 . "IO*"))))
+  (setq ss (ssget "X" '((0 . "INSERT") (2 . "IO点位注释"))))
   (if ss (x:process-replace ss devices))
-  (setq ss (ssget "X" '((0 . "INSERT") (2 . "AI*"))))
+  (setq ss (ssget "X" '((0 . "INSERT") (2 . "AI点位注释"))))
   (if ss (x:process-replace ss devices))
-  (setq ss (ssget "X" '((0 . "INSERT") (2 . "AO*"))))
+  (setq ss (ssget "X" '((0 . "INSERT") (2 . "AO点位注释"))))
   (if ss (x:process-replace ss devices))
-  (setq ss (ssget "X" '((0 . "INSERT") (2 . "DI*"))))
+  (setq ss (ssget "X" '((0 . "INSERT") (2 . "DI点位注释"))))
   (if ss (x:process-replace ss devices))
-  (setq ss (ssget "X" '((0 . "INSERT") (2 . "DO*"))))
+  (setq ss (ssget "X" '((0 . "INSERT") (2 . "DO点位注释"))))
   (if ss (x:process-replace ss devices))
 
   (princ))
