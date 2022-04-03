@@ -205,10 +205,13 @@
 
 (defun c:ttt (/ fname fp line items last-dev-items devices ss)
   ; get finename
-  (setq fname (getfiled "" "" "txt" 8))
+  (setq fname (getenv "ttt-last-fname"))
+  (if (not fname) (setq fname ""))
+  (setq fname (getfiled "" fname "txt" 8))
   (cond ((not fname)
          (print "not specifiy filename, exit ...")
          (vl-exit-with-error "")))
+  (setenv "ttt-last-fname" fname)
 
   ; open file
   (setq fp (open fname "r"))
