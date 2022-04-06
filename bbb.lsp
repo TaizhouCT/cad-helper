@@ -45,22 +45,39 @@
                 (setq __ss (ssadd en)))
               (ssadd (ssname ss 0) __ss))))))
 
-(defun x:process-find-rectangle-meter (en / pt-lst pt1 pt2 x-len y-len ss ed-line ed-line-x-len ed-line-y-len)
-  (setq ed (entget en))
-  (setq pt-lst (massoc 10 ed))
+(defun x:point-equal (pt1 pt2)
+  (and (equal (rtos (car pt1)) (rtos (car pt2))) (equal (rtos (cadr pt1)) (rtos (cadr pt2)))))
+
+(defun x:has-line (line ss ssidx / item pt1 pt2 result)
+  (if (/= ssidx (sslength ss))
+      (progn
+        (setq item (entget (ssname ss ssidx)))
+        (setq pt1 (cdr (assoc 10 item)))
+        (setq pt2 (cdr (assoc 11 item)))
+        (setq result nil)
+        (if (or (and (x:point-equal (car line) pt1) (x:point-equal (cadr line) pt2))
+                (and (x:point-equal (car line) pt2) (x:point-equal (cadr line) pt1)))
+            (ssname ss ssidx)
+          (x:has-line line ss (1+ ssidx))))
+    nil))
+
+(defun x:process-find-rectangle-meter (en / pt-lst pt1 pt2 x-center y-center horizon-center-line vertical-center-line ss ret)
+  (setq pt-lst (massoc 10 (entget en)))
   (if (= 4 (length pt-lst))
       (progn
         (setq pt1 (nth 0 pt-lst))
         (setq pt2 (nth 2 pt-lst))
-        (setq x-len (abs (- (cadr pt1) (cadr pt2))))
-        (setq y-len (abs (- (caddr pt1) (caddr pt2))))
+        (setq x-center (/ (+ (cadr pt1) (cadr pt2)) 2))
+        (setq y-center (/ (+ (caddr pt1) (caddr pt2)) 2))
+        (setq horizon-center-line (list (list x-center (caddr pt1)) (list x-center (caddr pt2))))
+        (setq vertical-center-line (list (list (cadr pt1) y-center) (list (cadr pt2) y-center)))
         (setq ss (ssget "W" (cdr pt1) (cdr pt2) '((0 . "LINE"))))
         (if ss
             (progn
-              (setq ed-line (entget (ssname ss 0)))
-              (setq ed-line-x-len (abs (- (cadr (assoc 10 ed-line)) (cadr (assoc 11 ed-line)))))
-              (setq ed-line-y-len (abs (- (caddr (assoc 10 ed-line)) (caddr (assoc 11 ed-line)))))
-              (if (or (equal (rtos ed-line-x-len) (rtos x-len)) (equal (rtos ed-line-y-len) (rtos y-len)))
+              (setq ret (x:has-line horizon-center-line ss 0))
+              (if (not ret)
+                  (setq ret (x:has-line vertical-center-line ss 0)))
+              (if ret
                   (progn
                     (setq __ss_nr (1+ __ss_nr))
                     (print "find one meter, current nr: ")
@@ -68,7 +85,7 @@
                     (if __ss
                         (setq __ss (ssadd en __ss))
                       (setq __ss (ssadd en)))
-                    (ssadd (ssname ss 0) __ss)))))))
+                    (ssadd ret __ss)))))))
   ())
 
 (defun c:bbb (/ pt1 pt2 ss ssidx en)
