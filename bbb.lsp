@@ -22,13 +22,13 @@
 
 ;; c:bbb of cad-helper
 
-(defun x:process-find-circle-meter (en / cc radius pt1 pt2 ss ed-line ed-line-half-len)
-  (setq cc (cadr (assoc 10 (entget en))))
+(defun x:process-find-circle-meter (en / x-cc radius pt1 pt2 ss ed-line ed-line-half-len)
+  (setq x-cc (cadr (assoc 10 (entget en))))
   (setq radius (cdr (assoc 40 (entget en))))
-  (setq pt1 (- cc radius))
-  (setq pt2 (+ cc radius))
-  (setq pt1 (subst pt1 cc (assoc 10 (entget en))))
-  (setq pt2 (subst pt2 cc (assoc 10 (entget en))))
+  (setq pt1 (- x-cc radius))
+  (setq pt2 (+ x-cc radius))
+  (setq pt1 (subst pt1 x-cc (assoc 10 (entget en))))
+  (setq pt2 (subst pt2 x-cc (assoc 10 (entget en))))
   (setq pt2 (cons 11 (cdr pt2)))
   (setq ss (ssget "W" (cdr pt1) (cdr pt2) '((0 . "LINE"))))
   (if ss
@@ -88,6 +88,29 @@
                     (ssadd ret __ss)))))))
   ())
 
+(defun x:process-find-half-circle-meter (en / y-cc radius pt1 pt2 ss ed-line ed-line-half-len)
+  (setq y-cc (caddr (assoc 10 (entget en))))
+  (setq radius (cdr (assoc 40 (entget en))))
+  (setq pt1 (- y-cc radius))
+  (setq pt2 (+ y-cc radius))
+  (setq pt1 (subst pt1 y-cc (assoc 10 (entget en))))
+  (setq pt2 (subst pt2 y-cc (assoc 10 (entget en))))
+  (setq pt2 (cons 11 (cdr pt2)))
+  (setq ss (ssget "W" (cdr pt1) (cdr pt2) '((0 . "LINE"))))
+  (if ss
+      (progn
+        (setq ed-line (entget (ssname ss 0)))
+        (setq ed-line-half-len (abs (/ (- (caddr (assoc 10 ed-line)) (caddr (assoc 11 ed-line))) 2)))
+        (if (equal (rtos ed-line-half-len) (rtos radius))
+            (progn
+              (setq __ss_nr (1+ __ss_nr))
+              (print "find one meter, current nr: ")
+              (princ __ss_nr)
+              (if __ss
+                  (setq __ss (ssadd en __ss))
+                (setq __ss (ssadd en)))
+              (ssadd (ssname ss 0) __ss))))))
+
 (defun c:bbb (/ pt1 pt2 ss ssidx en)
   ; init __ss
   (setq __ss nil)
@@ -111,6 +134,13 @@
   (setq ssidx 0)
   (while (and ss (/= ssidx (sslength ss)))
     (x:process-find-rectangle-meter (ssname ss ssidx))
+    (setq ssidx (1+ ssidx)))
+
+  ; find half circle meter
+  (setq ss (ssget "W" pt1 pt2 '((0 . "ARC"))))
+  (setq ssidx 0)
+  (while (and ss (/= ssidx (sslength ss)))
+    (x:process-find-half-circle-meter (ssname ss ssidx))
     (setq ssidx (1+ ssidx)))
 
   ; process result
