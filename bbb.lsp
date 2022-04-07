@@ -72,8 +72,11 @@
         (setq horizon-center-line (list (list x-center (caddr pt1)) (list x-center (caddr pt2))))
         (setq vertical-center-line (list (list (cadr pt1) y-center) (list (cadr pt2) y-center)))
         (setq ss (ssget "W" (cdr pt1) (cdr pt2) '((0 . "LINE"))))
-        (if ss
+        ;(print ss)
+        ;(if ss (print (sslength ss)))
+        (if (and ss (<= (sslength ss) 20))
             (progn
+              ;(print "one rectangle")
               (setq ret (x:has-line horizon-center-line ss 0))
               (if (not ret)
                   (setq ret (x:has-line vertical-center-line ss 0)))
@@ -111,7 +114,59 @@
                 (setq __ss (ssadd en)))
               (ssadd (ssname ss 0) __ss))))))
 
+(defun c:aaa (/ pt1 pt2 ss ssidx en)
+  ; init __ss
+  (setq __ss nil)
+  (setq __ss_nr 0)
+
+  ; get selected window
+  (setq pt1 (getpoint "\nget point 1:"))
+  (princ pt1)
+  (setq pt2 (getpoint "\nget point 2:"))
+  (princ pt2)
+
+  ; find rectangle meter
+  (setq ss (ssget "W" pt1 pt2 '((0 . "LWPOLYLINE"))))
+  (setq ssidx 0)
+  (while (and ss (/= ssidx (sslength ss)))
+    (x:process-find-rectangle-meter (ssname ss ssidx))
+    (setq ssidx (1+ ssidx)))
+
+  ; process result
+  (princ "\n")
+  (if __ss
+      (command "change" __ss "" "properties" "color" "red" ""))
+  (print "total nr: ")
+  (princ __ss_nr)
+  (princ))
+
 (defun c:bbb (/ pt1 pt2 ss ssidx en)
+  ; init __ss
+  (setq __ss nil)
+  (setq __ss_nr 0)
+
+  ; get selected window
+  (setq pt1 (getpoint "\nget point 1:"))
+  (princ pt1)
+  (setq pt2 (getpoint "\nget point 2:"))
+  (princ pt2)
+
+  ; find half circle meter
+  (setq ss (ssget "W" pt1 pt2 '((0 . "ARC"))))
+  (setq ssidx 0)
+  (while (and ss (/= ssidx (sslength ss)))
+    (x:process-find-half-circle-meter (ssname ss ssidx))
+    (setq ssidx (1+ ssidx)))
+
+  ; process result
+  (princ "\n")
+  (if __ss
+      (command "change" __ss "" "properties" "color" "red" ""))
+  (print "total nr: ")
+  (princ __ss_nr)
+  (princ))
+
+(defun c:ccc (/ pt1 pt2 ss ssidx en)
   ; init __ss
   (setq __ss nil)
   (setq __ss_nr 0)
@@ -127,20 +182,6 @@
   (setq ssidx 0)
   (while (and ss (/= ssidx (sslength ss)))
     (x:process-find-circle-meter (ssname ss ssidx))
-    (setq ssidx (1+ ssidx)))
-
-  ; find rectangle meter
-  (setq ss (ssget "W" pt1 pt2 '((0 . "LWPOLYLINE"))))
-  (setq ssidx 0)
-  (while (and ss (/= ssidx (sslength ss)))
-    (x:process-find-rectangle-meter (ssname ss ssidx))
-    (setq ssidx (1+ ssidx)))
-
-  ; find half circle meter
-  (setq ss (ssget "W" pt1 pt2 '((0 . "ARC"))))
-  (setq ssidx 0)
-  (while (and ss (/= ssidx (sslength ss)))
-    (x:process-find-half-circle-meter (ssname ss ssidx))
     (setq ssidx (1+ ssidx)))
 
   ; process result
